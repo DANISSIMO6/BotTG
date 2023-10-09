@@ -16,7 +16,40 @@ def commands(message):
 
 while True:
     # Выполнение команды
-    command = 'tksbrokerapi --token "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ" --prices YNDX GAZP MTSS PIKK ROSN SBER TCSG SGZH --output C:\\Windows\\System32\\TKSBrokerAPI\\docs\\examples\\AnomalyVolumesDetector\\pricez.md'
+    # Создайте список тикеров
+    tickers = [
+        'ETLN', 'SBER', 'SBERP', 'ROSN', 'NVTK', 'LKOH', 'GAZP', 'SIBN', 'GMKN', 'CHGZ',
+        'SNGSP', 'LSNGP', 'PLZL', 'TATN', 'TATNP', 'NLMK', 'SNGS', 'CHMF', 'TRNFP', 'UNAC',
+        'YNDX', 'PHOR', 'IRKT', 'AKRN', 'TCSG', 'RUAL', 'MAGN', 'MGNT', 'OZON', 'ALRS',
+        'VSMO', 'PIKK', 'MTSS', 'MOEX', 'HYDR', 'BANE', 'IRAO', 'VTBR', 'FESH', 'FLOT',
+        'ENPG', 'BANEP', 'RTKM', 'SMLT', 'NMTP', 'CBOM', 'NKNC', 'RASP', 'POLY', 'RTKMP',
+        'KZOS', 'TRMK', 'LSNG', 'MGTS', 'RSTIP', 'HHRU', 'GCHE', 'KMAZ', 'AFKS', 'MGTSP',
+        'AFLT', 'AGRO', 'RGSS', 'FIVE', 'ROSB', 'NKNCP', 'FEES', 'KUBE', 'UPRO', 'KAZTP',
+        'APTK', 'MTLRP', 'BSPB', 'KAZT', 'MSNG', 'UTAR', 'GLTR', 'RSTI', 'YAKG', 'NKHP',
+        'MTLR', 'AVAN', 'SGZH', 'KCHEP', 'AQUA', 'SELG', 'DVEC', 'MSTT', 'MFGS', 'MRKS',
+        'INGR', 'BELU', 'LSRG', 'USBN', 'UKUZ', 'MSRS', 'OGKB', 'MDMG', 'TNSE', 'MRKK',
+        'KZOSP', 'RTSB', 'RKKE', 'KCHE', 'AMEZ', 'ROLO', 'RNFT', 'VJGZ', 'DSKY', 'SIBG',
+        'VRSB', 'TGKA', 'QIWI', 'MFGSP', 'MRKP', 'MRKU', 'VJGZP', 'GTRK', 'BLNG', 'HIMCP',
+        'VSYD', 'MVID', 'NNSB', 'JNOS', 'CHMK', 'SVAV', 'ABRD', 'VSYDP', 'PAZA', 'KROT',
+        'RTSBP', 'LNZL', 'TGKD', 'SFIN', 'TTLK', 'JNOSP', 'TGKN', 'MRKC', 'YRSB', 'GAZA',
+        'VRSBP', 'ENRU', 'TGKDP', 'UCSS', 'URKZ', 'KOGK', 'WTCM', 'TGKBP', 'KRSB', 'KRSBP',
+        'KRKOP', 'BISVP', 'SAGO', 'MRKY', 'RAVN', 'CHKZ', 'UWGN', 'KBSB', 'KRKN', 'SLEN',
+        'MRKV', 'NNSBP', 'PMSBP', 'MISB', 'BRZL', 'TGKB', 'MISBP', 'WTCMP', 'IGSTP', 'SAGOP',
+        'IGST', 'PRMB', 'LNTA', 'YKEN', 'RUSI', 'OKEY', 'ZILL', 'MRKZ', 'ISKJ', 'KMEZ', 'ZVEZ',
+        'PMSB', 'VGSB', 'KGKC', 'NAUK', 'EELT', 'YRSBP', 'RZSB', 'KGKCP', 'KROTP', 'LPSB',
+        'YKENP', 'PRFN', 'NKSH', 'UNKL', 'KRKNP', 'VGSBP', 'NFAZ', 'TORS', 'LNZLP', 'KTSB',
+        'MAGE', 'TASB', 'SARE', 'STSB', 'DZRD', 'POGR', 'ASSB', 'CNTL', 'MAGEP', 'ROST', 'NSVZ',
+        'RDRB', 'MGNZ', 'STSBP', 'KLSB', 'CNTLP', 'TORSP', 'LVHK', 'DZRDP', 'RBCM', 'TASBP',
+        'LIFE', 'SAREP', 'MERF', 'GEMA', 'TUZA', 'DIOD', 'VLHZ', 'KTSBP', 'KUZB', 'ARSA', 'MRSB',
+        'ELTZ', 'RUGR', 'ORUP', 'DASB', 'MSST', 'GRNT', 'ODVA', 'RLMNP', 'GTLC', 'RLMN'
+    ]
+
+    # Преобразуйте список тикеров в строку, разделенную пробелами
+    tickers_str = ' '.join(tickers)
+
+    # Измените команду на использование переменной tickers_str
+    command = f'tksbrokerapi --token "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ" --prices {tickers_str} --output C:\\Windows\\System32\\TKSBrokerAPI\\docs\\examples\\AnomalyVolumesDetector\\pricez.md'
+
     subprocess.call(command, shell=True)
 
     # Чтение файла и создание DataFrame, пропуск первых 3 строк (заголовка и разделителей)
@@ -55,7 +88,7 @@ while True:
             print(f"Изменение в процентах: {percentage_change:.2f}%")
 
             # Проверка изменения в 0,5% и отправка уведомления
-            if abs(percentage_change) >= 0.5:
+            if abs(percentage_change) >= 0.001:
                 # Форматирование текста с использованием HTML-разметки
                 message_text = f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
                                f"<b>Тикер:</b> <code> {ticker.strip()}</code>\n" \
