@@ -2,10 +2,18 @@ import time
 import telebot
 import pandas as pd
 import subprocess
-
+from datetime import datetime, time as dt_time
 token = "6384593851:AAHHgUGXdQ8bar8HMKRuNgi1NnV_rhqnx0M"  # Замените на свой токен
 channel_id = "@novostikompaniy"  # Имя вашего канала
 bot = telebot.TeleBot(token)
+
+# Время начала и окончания первого отдыха (23:50 - 10:00)
+start_time1 = dt_time(23, 50)
+end_time1 = dt_time(10, 0)
+# Время начала и окончания второго отдыха (19:00 - 19:05)
+start_time2 = dt_time(19, 0)
+end_time2 = dt_time(19, 5)
+
 
 @bot.message_handler(content_types=['text'])
 def commands(message):
@@ -45,7 +53,7 @@ while True:
     # Удаление лишних пробелов в именах столбцов
     df.columns = df.columns.str.strip()
     # Извлечение данных из столбца "Last price" и исключение первой строки
-    last_prices = df['Last price'].str.strip().iloc[1:].to_string(index=False, header=False)
+    last_prices = df['Last price'].str.strip().iloc[1:].astype(float).round(4).to_string(index=False, header=False)
 
     # Запись данных в файл example.txt
     with open('example.txt', 'w') as example_file:
@@ -76,7 +84,7 @@ while True:
             print(f"Изменение в процентах: {percentage_change:.2f}%")
 
             # Проверка изменения в 0,5% и отправка уведомления
-            if abs(percentage_change) >= 0.5:
+            if abs(percentage_change) >= 0.05  :
                 # Форматирование текста с использованием HTML-разметки
                 message_text = f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
                                f"<b>Тикер:</b> <code> {ticker.strip()}</code>\n" \
