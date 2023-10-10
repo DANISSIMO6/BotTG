@@ -53,13 +53,29 @@ while True:
     # Удаление лишних пробелов в именах столбцов
     df.columns = df.columns.str.strip()
     # Извлечение данных из столбца "Last price" и исключение первой строки
-    last_prices = df['Last price'].str.strip().iloc[1:].astype(float).round(4).to_string(index=False, header=False)
+    # Извлечение данных из столбца "Actual sell / buy" и исключение первой строки
+    actual_sell_buy = df['Actual sell / buy'].str.strip().iloc[1:]
 
-    # Запись данных в файл example.txt
+    # Разделение столбца на два столбца "Actual sell" и "Actual buy"
+    actual_sell_buy_split = actual_sell_buy.str.split('/', expand=True)
+    actual_sell = actual_sell_buy_split[0].str.strip()
+    actual_buy = actual_sell_buy_split[1].str.strip()
+
+    def convert_to_float_or_none(x):
+        try:
+            return float(x)
+        except (ValueError, TypeError):
+            return None
+
+
+    actual_buy = actual_buy.apply(lambda x: convert_to_float_or_none(x)).round(4)
+
+    # Преобразование цены покупки в строку и запись в файл
     with open('example.txt', 'w') as example_file:
-        example_file.write(last_prices)
+        example_file.write(actual_buy.to_string(index=False, header=False))
+
     # Чтение старых данных построчно из example1.txt
-    with open('example1.txt', 'r') as old_data_file:
+    with open('example1.txt') as old_data_file:
         old_data1 = old_data_file.readlines()
 
     # Чтение новых данных построчно из example.txt
@@ -84,7 +100,7 @@ while True:
             print(f"Изменение в процентах: {percentage_change:.2f}%")
 
             # Проверка изменения в 0,5% и отправка уведомления
-            if abs(percentage_change) >= 0.05  :
+            if abs(percentage_change) >= 0.10  :
                 # Форматирование текста с использованием HTML-разметки
                 message_text = f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
                                f"<b>Тикер:</b> <code> {ticker.strip()}</code>\n" \
