@@ -100,7 +100,7 @@ while True:
             print(f"Изменение в процентах: {percentage_change:.2f}%")
 
             # Проверка изменения в 0,5% и отправка уведомления
-            if abs(percentage_change) >= 0.10  :
+            if abs(percentage_change) >= 5.0:
                 # Форматирование текста с использованием HTML-разметки
                 message_text = f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
                                f"<b>Тикер:</b> <code> {ticker.strip()}</code>\n" \
@@ -110,7 +110,7 @@ while True:
 
                 # Отправляем уведомление в канал с форматированием
                 bot.send_message(channel_id, message_text, parse_mode="HTML")
-
+                time.sleep(3)
         # Обновление старых данных в example1.txt
         old_data1[i] = str(new_value) + '\n'
 
@@ -122,7 +122,6 @@ while True:
     time.sleep(60)
 
 bot.stop_polling()
-
 
 
 
