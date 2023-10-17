@@ -118,15 +118,15 @@ def task1():
                 if total_sell and total_buy:
                     buy_ratio = total_buy / (total_sell + total_buy) * 100
                     sell_ratio = total_sell / (total_sell + total_buy) * 100
-                    if buy_ratio > 60 or sell_ratio > 60:
-                        message_text = f"<b>Аномалия обнаружена для {instrument_ticker}:</b>\n\n" \
-                                           f"<b>Покупка:</b> {sell_ratio:.2f}%\n" \
-                                           f"<b>Продажа:</b> {buy_ratio:.2f}%"\
-                                           f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
-                                           f"<b>Тикер:</b> <code> {ticker.strip()}</code>\n" \
-                                           f"<b>Старые данные:</b> {old_value}\n" \
-                                           f"<b>Новые данные:</b> {new_value}\n" \
-                                           f"<b>Изменение в процентах:</b> {percentage_change:.2f}%"
+                    if buy_ratio > 80 or sell_ratio > 80:
+                        message_text = f"<b>Аномалия обнаружена для {ticker.strip()}:</b>\n\n" \
+                                       f"<b>Покупка:</b> {sell_ratio:.2f}%\n" \
+                                       f"<b>Продажа:</b> {buy_ratio:.2f}%\n" \
+                                       f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
+                                       f"<b>Тикер:</b> <code>{ticker.strip()}</code>\n" \
+                                       f"<b>Старые данные:</b> {old_value}\n" \
+                                       f"<b>Новые данные:</b> {new_value}\n" \
+                                       f"<b>Изменение в процентах:</b> {percentage_change:.2f}%"
 
                         bot.send_message(channel_id, message_text, parse_mode="HTML")
                         time.sleep(3)
