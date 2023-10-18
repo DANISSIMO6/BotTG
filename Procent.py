@@ -108,6 +108,14 @@ def task1():
                 old_value = float(old_line.strip())
                 new_value = float(new_line.strip())
 
+                if total_buy is not None and total_sell is not None:
+                    # Calculate buy_ratio and sell_ratio here
+                    buy_ratio = new_value / (new_value + total_sell) * 100
+                    sell_ratio = total_sell / (new_value + total_sell) * 100
+                else:
+                    buy_ratio = 0
+                    sell_ratio = 0
+
                 print(f"Тикер: {ticker.strip()}")
                 print(f"Строка {i + 1}: Данные изменились!")
                 percentage_change = (new_value - old_value) / old_value * 100
@@ -115,27 +123,18 @@ def task1():
                 print(f"Новые данные: {new_value}")
                 print(f"Изменение в процентах: {percentage_change:.2f}%")
 
-                if total_sell and total_buy:
-                    buy_ratio = total_buy / (total_sell + total_buy) * 100
-                    sell_ratio = total_sell / (total_sell + total_buy) * 100
-                    if buy_ratio > 80 or sell_ratio > 80:
-                        message_text = f"<b>Аномалия обнаружена для {ticker.strip()}:</b>\n\n" \
-                                       f"<b>Покупка:</b> {sell_ratio:.2f}%\n" \
-                                       f"<b>Продажа:</b> {buy_ratio:.2f}%\n" \
-                                       f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
-                                       f"<b>Тикер:</b> <code>{ticker.strip()}</code>\n" \
-                                       f"<b>Старые данные:</b> {old_value}\n" \
-                                       f"<b>Новые данные:</b> {new_value}\n" \
-                                       f"<b>Изменение в процентах:</b> {percentage_change:.2f}%"
+                if buy_ratio > 60 or sell_ratio > 60:
+                    message_text = f"<b>Аномалия обнаружена для {ticker.strip()}:</b>\n\n" \
+                                   f"<b>Покупка:</b> {sell_ratio:.2f}%\n" \
+                                   f"<b>Продажа:</b> {buy_ratio:.2f}%\n" \
+                                   f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
+                                   f"<b>Тикер:</b> <code>{ticker.strip()}</code>\n" \
+                                   f"<b>Старые данные:</b> {old_value}\n" \
+                                   f"<b>Новые данные:</b> {new_value}\n" \
+                                   f"<b>Изменение в процентах:</b> {percentage_change:.2f}%"
+                    bot.send_message(channel_id, message_text, parse_mode="HTML")
+                    time.sleep(3)
 
-                        bot.send_message(channel_id, message_text, parse_mode="HTML")
-                        time.sleep(3)
-
-                old_data1[i] = str(new_value) + '\n'
-
-        # Обновление старых данных в example1.txt
-        with open('example1.txt', 'w') as old_data_file:
-            old_data_file.writelines(old_data1)
 
 t1 = threading.Thread(target=task1)
 
