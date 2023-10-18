@@ -32,7 +32,7 @@ with open("tickers.txt", "r") as file:
     tickers = file.read().splitlines()
 
 def task1():
-    global tickers  # Declare 'tickers' as global
+    global tickers
     while True:
         for instrument_ticker in tickers:
             command = f'tksbrokerapi --token "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ" -t {instrument_ticker} --depth {depth} --price > glass.md --prices {tickers} --output C:\\Windows\\System32\\TKSBrokerAPI\\docs\\examples\\AnomalyVolumesDetector\\pricez.md'
@@ -52,6 +52,35 @@ def task1():
                 total_buy = int(total_buy_match.group(1))
             else:
                 total_buy = None
+
+            command = f'tksbrokerapi --token "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ" -t {instrument_ticker} --depth {depth} --price > glass.md --prices {tickers} --output C:\\Windows\\System32\\TKSBrokerAPI\\docs\\examples\\AnomalyVolumesDetector\\pricez.md'
+            subprocess.call(command, shell=True)
+
+            with open("pricez.md", "r") as pricez_file:
+                pricez_contents = pricez_file.read()
+
+            ticker_chg = {}
+            changes = []  # Store the changes in a list
+
+            # Iterate over each line in the file
+            for line in pricez_contents.splitlines():
+                # Use regex to match the ticker and its corresponding change percentage
+                match = re.search(
+                    r"\|\s+(\w+)\s+\|\s+BBG[0-9A-Z]+\s+\|\s+\w+\s+\|\s+[0-9.]+\s+\|\s+[0-9.]+\s+\|\s+([-+]?[0-9]*\.?[0-9]*)%",
+                    line)
+                if match:
+                    ticker = match.group(1)
+                    change_percentage = float(match.group(2))
+                    ticker_chg[ticker] = change_percentage
+
+                    # Check if there's a change and store it in the 'changes' list
+                    if ticker in tickers:
+                        changes.append(f"{ticker} | {change_percentage:.2f}%")
+
+            # Save the changes to the 'change.md' file
+            with open("change.md", "w") as change_file:
+                change_file.write("\n".join(changes))
+
 
             ticker = [
                 'ETLN', 'SBER', 'SBERP', 'ROSN', 'NVTK', 'LKOH', 'GAZP', 'SIBN', 'GMKN', 'SNGSP', 'LSNGP',
@@ -115,6 +144,9 @@ def task1():
                 else:
                     buy_ratio = 0
                     sell_ratio = 0
+                with open("pricez.md", "r") as pricez_file:
+                    pricez_contents = pricez_file.read()
+
 
                 print(f"Тикер: {ticker.strip()}")
                 print(f"Строка {i + 1}: Данные изменились!")
@@ -122,6 +154,7 @@ def task1():
                 print(f"Старые данные: {old_value}")
                 print(f"Новые данные: {new_value}")
                 print(f"Изменение в процентах: {percentage_change:.2f}%")
+                print(f"Изменение в процентах за день:{ticker_chg.get(ticker.strip(), 0):.2f}%")
 
                 if buy_ratio > 60 or sell_ratio > 60:
                     message_text = f"<b>Аномалия обнаружена для {ticker.strip()}:</b>\n\n" \
@@ -131,7 +164,8 @@ def task1():
                                    f"<b>Тикер:</b> <code>{ticker.strip()}</code>\n" \
                                    f"<b>Старые данные:</b> {old_value}\n" \
                                    f"<b>Новые данные:</b> {new_value}\n" \
-                                   f"<b>Изменение в процентах:</b> {percentage_change:.2f}%"
+                                   f"<b>Изменение в процентах:</b> {percentage_change:.2f}%\n" \
+                                   f"<b>Изменение в процентах за день:</b> {ticker_chg.get(ticker.strip(), 0):.2f}%"
                     bot.send_message(channel_id, message_text, parse_mode="HTML")
                     time.sleep(3)
 
