@@ -5,7 +5,7 @@ import re
 import threading
 import subprocess
 from datetime import datetime, time as dt_time
-
+from datetime import datetime
 token = "6384593851:AAHHgUGXdQ8bar8HMKRuNgi1NnV_rhqnx0M"
 channel_id = "@novostikompaniy"
 bot = telebot.TeleBot(token)
@@ -156,18 +156,59 @@ def task1():
                 print(f"Изменение в процентах: {percentage_change:.2f}%")
                 print(f"Изменение в процентах за день:{ticker_chg.get(ticker.strip(), 0):.2f}%")
 
+                def find_largest_volume():
+                    with open("glass.md", "r") as file:
+                        file_contents = file.read()
+
+                    # Используйте регулярное выражение, чтобы извлечь таблицу
+                    table_match = re.search(r"Orders of Buyers(.+?)Total sell: (\d+)", file_contents, re.DOTALL)
+
+                    if table_match:
+                        table_text = table_match.group(1)
+                        total_sell = int(table_match.group(2))
+
+                        # Разделите текст таблицы на строки
+                        table_lines = table_text.splitlines()
+                        volume_dict = {}
+
+                        # Итерируйтесь по строкам, начиная с четвертой строки
+                        for line in table_lines[3:]:
+                            # Разбейте строку на два столбца
+                            columns = line.split('|')
+                            if len(columns) == 2:
+                                volume_str = columns[1].strip()
+                                # Извлеките объем и цену
+                                match = re.search(r"([0-9.]+) \((\d+)\)", volume_str)
+                                if match:
+                                    price = float(match.group(1))
+                                    volume = int(match.group(2))
+                                    volume_dict[price] = volume
+
+                        # Найдите максимальный объем
+                        max_price = max(volume_dict, key=volume_dict.get)
+                        max_volume = volume_dict[max_price]
+
+                        return max_price, max_volume, total_sell
+
+                    return None, None, None
+
                 if buy_ratio > 60 or sell_ratio > 60:
-                    message_text = f"<b>Аномалия обнаружена для {ticker.strip()}:</b>\n\n" \
-                                   f"<b>Покупка:</b> {sell_ratio:.2f}%\n" \
-                                   f"<b>Продажа:</b> {buy_ratio:.2f}%\n" \
-                                   f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
-                                   f"<b>Тикер:</b> <code>{ticker.strip()}</code>\n" \
-                                   f"<b>Старые данные:</b> {old_value}\n" \
-                                   f"<b>Новые данные:</b> {new_value}\n" \
-                                   f"<b>Изменение в процентах:</b> {percentage_change:.2f}%\n" \
-                                   f"<b>Изменение в процентах за день:</b> {ticker_chg.get(ticker.strip(), 0):.2f}%"
-                    bot.send_message(channel_id, message_text, parse_mode="HTML")
-                    time.sleep(3)
+                    max_price, max_volume, total_sell = find_largest_volume()
+                    if max_price is not None and max_volume is not None:
+                        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Форматируем текущее время
+                        message_text = f"<b>Аномалия обнаружена для {ticker.strip()}:</b>\n\n" \
+                                       f"<b>Покупка:</b> {sell_ratio:.2f}%\n" \
+                                       f"<b>Продажа:</b> {buy_ratio:.2f}%\n" \
+                                       f"<b>Наибольшая лотность:</b> {max_volume}\n" \
+                                       f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
+                                       f"<b>Тикер:</b> <code>{ticker.strip()}</code>\n" \
+                                       f"<b>Старая цена:</b> {old_value}\n" \
+                                       f"<b>Новая ЦЕНА:</b> {new_value}\n" \
+                                       f"<b>Изменение цены в процентах:</b> {percentage_change:.2f}%\n" \
+                                       f"<b>Изменение в процентах за день:</b> {ticker_chg.get(ticker.strip(), 0):.2f}%\n" \
+                                       f"<b>Время отправки:</b> {current_time}"  # Добавляем текущее время
+                        bot.send_message(channel_id, message_text, parse_mode="HTML")
+                        time.sleep(3)
 
 
 t1 = threading.Thread(target=task1)
