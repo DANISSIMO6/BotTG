@@ -144,7 +144,7 @@ while True:
                 if total_sell and total_buy:
                     buy_ratio = total_buy / (total_sell + total_buy) * 100
                     sell_ratio = total_sell / (total_sell + total_buy) * 100
-                    if buy_ratio > 10 or sell_ratio > 10:
+                    if buy_ratio > 60 or sell_ratio > 60:
                         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Форматируем текущее время
                         message_text = f"<b> Аномалия обнаружена для<code> {ticker.strip()}</code></b>\n\n" \
                                        f"<b>Покупка:</b> {sell_ratio: .2f}%\n" \
@@ -152,11 +152,15 @@ while True:
                                        f"<b>Изменение цены:</b> {percentage_change:.2f}%\n" \
                                        f"<b>Старые данные:</b> {old_value}\n" \
                                        f"<b>Новые данные:</b> {new_value}\n"\
-                                       f"<b>Изменение в процентах за день:</b> {ticker_chg.get(ticker.strip(), 0):.2f}%\n" \
+                                       f"<b>Измеение в процентах за день:</b> {ticker_chg.get(ticker.strip(), 0):.2f}%\n" \
                                        f"<b>Время отправки:</b> {current_time}"  # Добавляем текущее время
+
                     # Отправляем уведомление в канал с форматированием
-                    bot.send_message(channel_id, message_text, parse_mode="HTML")
-                    time.sleep(2.5)
+                        bot.send_message(channel_id, message_text, parse_mode="HTML")
+                        time.sleep(2.5)
+                    else:
+                            # Если условие не выполнено, просто пропускаем текущую итерацию цикла
+                        continue
             # Обновление старых данных в example1.txt
             old_data1[i] = str(new_value) + '\n'
 
@@ -172,4 +176,4 @@ while True:
         time.sleep(60)  # Ожидание 1 минуту перед повторным запуском
 
 
-bot.stop_polling()
+bot.stop_polling()ё
