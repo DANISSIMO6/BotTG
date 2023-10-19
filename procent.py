@@ -28,6 +28,7 @@ def commands(message):
 
 while True:
     try:
+
         tickers = ['ETLN', 'SBER', 'SBERP', 'ROSN', 'NVTK', 'LKOH', 'GAZP', 'SIBN', 'GMKN', 'SNGSP', 'LSNGP',
                 'PLZL', 'TATN', 'TATNP', 'NLMK', 'SNGS', 'CHMF', 'TRNFP', 'UNAC', 'YNDX', 'PHOR', 'IRKT',
                 'AKRN', 'TCSG', 'RUAL', 'MAGN', 'MGNT', 'OZON', 'ALRS', 'VSMO', 'PIKK', 'MTSS', 'MOEX',
@@ -44,8 +45,8 @@ while True:
         tickers_str = ' '.join(tickers)
         # Измените команду на использование переменной tickers_str
         command = f'tksbrokerapi --token "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ" --prices {tickers_str} --output C:\\Windows\\System32\\TKSBrokerAPI\\docs\\examples\\AnomalyVolumesDetector\\pricez.md'
-
         subprocess.call(command, shell=True)
+
 
         # Чтение файла и создание DataFrame, пропуск первых 3 строк (заголовка и разделителей)
         df = pd.read_csv('pricez.md', sep='|', skiprows=3, header='infer', skipinitialspace=True)
@@ -58,7 +59,30 @@ while True:
         actual_sell_buy_split = actual_sell_buy.str.split('/', expand=True)
         actual_sell = actual_sell_buy_split[0].str.strip()
         actual_buy = actual_sell_buy_split[1].str.strip()
+        with open("pricez.md", "r") as pricez_file:
+            pricez_contents = pricez_file.read()
 
+        ticker_chg = {}
+        changes = []  # Store the changes in a list
+
+        # Iterate over each line in the file
+        for line in pricez_contents.splitlines():
+            # Use regex to match the ticker and its corresponding change percentage
+            match = re.search(
+                r"\|\s+(\w+)\s+\|\s+BBG[0-9A-Z]+\s+\|\s+\w+\s+\|\s+[0-9.]+\s+\|\s+[0-9.]+\s+\|\s+([-+]?[0-9]*\.?[0-9]*)%",
+                line)
+            if match:
+                ticker = match.group(1)
+                change_percentage = float(match.group(2))
+                ticker_chg[ticker] = change_percentage
+
+                # Check if there's a change and store it in the 'changes' list
+                if ticker in tickers:
+                    changes.append(f"{ticker} | {change_percentage:.2f}%")
+
+        # Save the changes to the 'change.md' file
+        with open("change.md", "w") as change_file:
+            change_file.write("\n".join(changes))
         def convert_to_float_or_none(x):
             try:
                 return float(x)
@@ -82,6 +106,7 @@ while True:
         # Чтение тикеров построчно из tickers.txt
         with open('tickers.txt', 'r') as tickers_file:
             tickers = tickers_file.read().splitlines()
+
         # Проверка изменений построчно
         for i, (old_line, new_line, ticker) in enumerate(zip(old_data1, new_data_lines, tickers)):
             old_value = float(old_line.strip())
@@ -120,12 +145,15 @@ while True:
                     buy_ratio = total_buy / (total_sell + total_buy) * 100
                     sell_ratio = total_sell / (total_sell + total_buy) * 100
                     if buy_ratio > 10 or sell_ratio > 10:
-                        message_text = f"<b>Резкое изменение за 1 минуту:</b>\n\n" \
-                               f"<b>Тикер:</b> <code> {ticker.strip()}</code>\n" \
-                               f"<b>Старые данные:</b> {old_value}\n" \
-                               f"<b>Новые данные:</b> {new_value}\n" \
-                               f"<b>Изменение в процентах:</b> {percentage_change:.2f}%\n" \
-                                       f"Аномалия обнаружена для {ticker.strip()}: Покупка {sell_ratio:.2f}% Продажа {buy_ratio:.2f}%"
+                        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Форматируем текущее время
+                        message_text = f"<b> Аномалия обнаружена для<code> {ticker.strip()}</code></b>\n\n" \
+                                       f"<b>Покупка:</b> {sell_ratio: .2f}%\n" \
+                                       f"<b>Продажа:</b> {buy_ratio:.2f}%\n" \
+                                       f"<b>Изменение цены:</b> {percentage_change:.2f}%\n" \
+                                       f"<b>Старые данные:</b> {old_value}\n" \
+                                       f"<b>Новые данные:</b> {new_value}\n"\
+                                       f"<b>Изменение в процентах за день:</b> {ticker_chg.get(ticker.strip(), 0):.2f}%\n" \
+                                       f"<b>Время отправки:</b> {current_time}"  # Добавляем текущее время
                     # Отправляем уведомление в канал с форматированием
                     bot.send_message(channel_id, message_text, parse_mode="HTML")
                     time.sleep(2.5)
