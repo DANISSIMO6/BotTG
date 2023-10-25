@@ -1,8 +1,9 @@
 import re
 import telebot
 from datetime import datetime, timedelta, timezone
-
 import time
+
+sent_messages = set()
 # Создайте объект timezone для UTC
 utc_timezone = timezone.utc
 stream_data = []
@@ -15,7 +16,7 @@ bot = telebot.TeleBot(bot_token)
 
 # Создание словаря для хранения Total Volume по FIGI
 total_volumes = {}
-
+last_cleanup_time = datetime.now(timezone.utc)
 while True:
     # Считывание данных из файла FIGI.md и заполнение словаря
     with open("FIGI.md", "r") as figi_file:
@@ -34,19 +35,32 @@ while True:
             figi_match = re.search(r"figi='(\S+)'", line)
             volume_match = re.search(r"volume=(\d+)", line)
             time_match = re.search(r"time=datetime.datetime\(([\d, ]+), tzinfo=datetime.timezone.utc\)", line)
-            if figi_match and volume_match and time_match:
+            close_match = re.search(r"close=Quotation\(units=(\d+), nano=(\d+)\)", line)
+            if figi_match and volume_match and time_match and close_match:
                 figi = figi_match.group(1)
                 volume = int(volume_match.group(1))
+                close_units = int(close_match.group(1))
+                close_nano = int(close_match.group(2))
+                close_value = close_units + close_nano * 1e-9  # Преобразование в одно число
+                total_value = volume * close_value  # Умножение объема на цену закрытия
                 line_time = datetime(*map(int, time_match.group(1).split(", ")), tzinfo=utc_timezone)
                 current_time = datetime.now(timezone.utc)
-                if figi in total_volumes and volume > (total_volumes[figi] * 2):
+                if figi in total_volumes and volume > (total_volumes[figi] * 5) and figi not in sent_messages:
                     # Отправка сообщения в Telegram, если объем в 2 раза больше Total Volume
-                    message = f"Объем для FIGI {figi} в Stream.md больше чем в 2 раза Total Volume: {volume}"
-                    #bot.send_message(chat_id, message)
-                if current_time - line_time < timedelta(minutes=3):
+                    message = f"Объем для FIGI {figi} в Stream.md больше чем в 2 раза Total Volume: {volume}. " \
+                              f"Общая стоимость составила: {total_value}"
+                    bot.send_message(chat_id, message)
+                    sent_messages.add(figi)
+                if current_time - line_time < timedelta(minutes=6):
                     new_lines.append(line)
         with open("Stream.md", "w") as stream_file:
             stream_file.writelines(new_lines)
 
+    if current_time - last_cleanup_time >= timedelta(minutes=1):
+        sent_messages.clear()  # Очищаем множество отправленных сообщений
+        last_cleanup_time = current_time  # Обновляем время последней очистки
+
     # Пауза на 1 минуту перед следующей итерацией
     time.sleep(2.5)
+
+
