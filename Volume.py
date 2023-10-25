@@ -45,13 +45,13 @@ while True:
                 total_value = volume * close_value  # Умножение объема на цену закрытия
                 line_time = datetime(*map(int, time_match.group(1).split(", ")), tzinfo=utc_timezone)
                 current_time = datetime.now(timezone.utc)
-                if figi in total_volumes and volume > (total_volumes[figi] * 10) and figi not in sent_messages:
+                if figi in total_volumes and volume > (total_volumes[figi] * 2) and figi not in sent_messages:
                     # Отправка сообщения в Telegram, если объем в 2 раза больше Total Volume
                     message = f"Объем для FIGI {figi} в Stream.md больше чем в 2 раза Total Volume: {volume}. " \
                               f"Общая стоимость составила: {total_value}"
                     bot.send_message(chat_id, message)
                     sent_messages.add(figi)
-                if current_time - line_time < timedelta(minutes=10):
+                if current_time - line_time < timedelta(minutes=6):
                     new_lines.append(line)
         with open("Stream.md", "w") as stream_file:
             stream_file.writelines(new_lines)
