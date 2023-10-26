@@ -2,7 +2,7 @@ import re
 import telebot
 from datetime import datetime, timedelta, timezone
 import time
-
+import os
 import asyncio
 from tinkoff.invest import (
     AsyncClient,
@@ -87,7 +87,7 @@ async def main():
                     total_value = volume * close_value  # Умножение объема на цену закрытия
                     line_time = datetime(*map(int, time_match.group(1).split(", ")), tzinfo=utc_timezone)
                     current_time = datetime.now(timezone.utc)
-                    if figi in total_volumes and volume > (total_volumes[figi] * 34) and figi not in sent_messages:
+                    if figi in total_volumes and volume > (total_volumes[figi] * 2) and figi not in sent_messages:
                         await process_marketdata(figi)
                         if figi in order_books:
                             order_book_data = order_books[figi]
@@ -126,34 +126,36 @@ async def main():
                         # Вычисление процентов
                         bids_percentage = (total_bids_quantity / total_quantity) * 100 if total_quantity != 0 else 0
                         asks_percentage = (total_asks_quantity / total_quantity) * 100 if total_quantity != 0 else 0
-
+                        # Получить текущее время
+                        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        last_cleanup_time = datetime.now(timezone.utc)
+                        line_time = datetime.now(timezone.utc)
                         # Отправка сообщения в Telegram, если объем в 2 раза больше Total Volume
-                        message = f"Объем для FIGI {figi} в Stream.md больше чем в 2 раза Total Volume: {volume}. " \
-                                  f"Общая стоимость составила: {total_value}"\
-                                  f"Покупки: {bids_percentage:.2f}% Продажи: {asks_percentage:.2f}%"\
-                                  f"Продажи: {total_asks_quantity}"\
-                                  f"Покупки: {total_bids_quantity}"
+                        message = f'Аномальный объём\n' \
+                                  f'Аномальное изменение цены\n' \
+                                  f'Изменение цены:\n' \
+                                  f'Объём: {total_value}М₽\n' \
+                                  f"Покупка: {bids_percentage:.2f}%\n" \
+                                  f"Продажа: {asks_percentage:.2f}%\n" \
+                                  f'Цена:\n' \
+                                  f'Изменение за день:'\
+                                  f"Время отправки: {current_time}\n"
 
                         bot.send_message(chat_id, message)
                         sent_messages.add(figi)
-                        if current_time - line_time < timedelta(minutes=6):
-                            new_lines.append(line)
-                    with open("Stream.md", "w") as stream_file:
-                        stream_file.writelines(new_lines)
-                    if current_time - last_cleanup_time >= timedelta(minutes=1):
-                        sent_messages.clear()  # Очищаем множество отправленных сообщений
-                        last_cleanup_time = current_time  # Обновляем время последней очистки
-                    if current_time - line_time < timedelta(minutes=0.02):
-                        new_lines.append(line)
-                    with open("StreamBook.md", "w") as stream_file:
-                        stream_file.writelines(new_lines)
+                    # Clear the content of StreamBook.md
+                    with open('StreamBook.md', 'w') as file:
+                        file.write('')
 
-                    if current_time - last_cleanup_time >= timedelta(minutes=0.05):
-                        sent_messages.clear()  # Очищаем множество отправленных сообщений
-                        last_cleanup_time = current_time
+                    sent_messages.add(figi)
 
-                    # Пауза на 1 минуту перед следующей итерацией
-                    time.sleep(2.5)
+            if current_time - line_time < timedelta(minutes=6):
+                new_lines.append(line)
+            with open("Stream.md", "w") as stream_file:
+                stream_file.writelines(new_lines)
+
+            time.sleep(2.5)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
