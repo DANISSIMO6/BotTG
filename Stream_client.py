@@ -7,8 +7,6 @@ from tinkoff.invest import (
     SubscribeCandlesRequest,
     SubscriptionAction,
     SubscriptionInterval,
-    SubscribeOrderBookRequest,
-    OrderBookInstrument,
 )
 TOKEN = "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ"
 # Список FIGIs
@@ -46,17 +44,6 @@ async def main():
                         CandleInstrument(
                             figi=figi,
                             interval=SubscriptionInterval.SUBSCRIPTION_INTERVAL_ONE_MINUTE,
-                        )
-                    ],
-                )
-            )
-            yield MarketDataRequest(
-                subscribe_order_book_request=SubscribeOrderBookRequest(
-                    subscription_action=SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE,
-                    instruments=[
-                        OrderBookInstrument(
-                            figi=figi,
-                            depth=50,
                         )
                     ],
                 )
