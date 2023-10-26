@@ -14,9 +14,12 @@ from tinkoff.invest import (
     SubscribeOrderBookRequest,
     OrderBookInstrument,
 )
+
 TOKEN = "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ"
 
 sent_messages = set()
+order_books = {}  # Add a dictionary to store order book data
+
 # Создайте объект timezone для UTC
 utc_timezone = timezone.utc
 stream_data = []
@@ -40,6 +43,7 @@ async def request_iterator(figi):
         )
     )
     await asyncio.sleep(1)
+
 async def process_marketdata(figi):
     async with AsyncClient(TOKEN) as client:
         async for marketdata in client.market_data_stream.market_data_stream(
@@ -48,6 +52,8 @@ async def process_marketdata(figi):
             print(marketdata)
             with open('StreamBook.md', 'a') as stream:
                 stream.write(str(marketdata) + '\n')
+                print(marketdata)
+                order_books[figi] = marketdata
 
 async def main():
     last_cleanup_time = datetime.now(timezone.utc)
@@ -83,22 +89,71 @@ async def main():
                     current_time = datetime.now(timezone.utc)
                     if figi in total_volumes and volume > (total_volumes[figi] * 34) and figi not in sent_messages:
                         await process_marketdata(figi)
+                        if figi in order_books:
+                            order_book_data = order_books[figi]
+                            # Process the order book data here
+                            print("Order Book Data for FIGI:", figi)
+                            print(order_book_data)
+
+                        with open('StreamBook.md', 'r') as file:
+                            data = file.read()
+
+                        # Извлечение списков bids из данных
+                        bids_data_list = re.findall(r'bids=\[(.*?)\]', data)
+
+                        total_bids_quantity = 0
+                        for bids_data in bids_data_list:
+                            # Извлечение значений quantity из списка bids
+                            bids_quantities = re.findall(r'quantity=(\d+)', bids_data)
+
+                            # Преобразование значений quantity в целые числа и вычисление их суммы
+                            total_bids_quantity += sum(int(quantity) for quantity in bids_quantities)
+
+                        # Извлечение списков asks из данных
+                        asks_data_list = re.findall(r'asks=\[(.*?)\]', data)
+
+                        total_asks_quantity = 0
+                        for asks_data in asks_data_list:
+                            # Извлечение значений quantity из списка asks
+                            asks_quantities = re.findall(r'quantity=(\d+)', asks_data)
+
+                            # Преобразование значений quantity в целые числа и вычисление их суммы
+                            total_asks_quantity += sum(int(quantity) for quantity in asks_quantities)
+
+                        # Вычисление общего количества
+                        total_quantity = total_bids_quantity + total_asks_quantity
+
+                        # Вычисление процентов
+                        bids_percentage = (total_bids_quantity / total_quantity) * 100 if total_quantity != 0 else 0
+                        asks_percentage = (total_asks_quantity / total_quantity) * 100 if total_quantity != 0 else 0
+
                         # Отправка сообщения в Telegram, если объем в 2 раза больше Total Volume
                         message = f"Объем для FIGI {figi} в Stream.md больше чем в 2 раза Total Volume: {volume}. " \
-                                  f"Общая стоимость составила: {total_value}"
+                                  f"Общая стоимость составила: {total_value}"\
+                                  f"Покупки: {bids_percentage:.2f}% Продажи: {asks_percentage:.2f}%"\
+                                  f"Продажи: {total_asks_quantity}"\
+                                  f"Покупки: {total_bids_quantity}"
+
                         bot.send_message(chat_id, message)
                         sent_messages.add(figi)
-                    if current_time - line_time < timedelta(minutes=6):
+                        if current_time - line_time < timedelta(minutes=6):
+                            new_lines.append(line)
+                    with open("Stream.md", "w") as stream_file:
+                        stream_file.writelines(new_lines)
+                    if current_time - last_cleanup_time >= timedelta(minutes=1):
+                        sent_messages.clear()  # Очищаем множество отправленных сообщений
+                        last_cleanup_time = current_time  # Обновляем время последней очистки
+                    if current_time - line_time < timedelta(minutes=0.02):
                         new_lines.append(line)
-            with open("Stream.md", "w") as stream_file:
-                stream_file.writelines(new_lines)
+                    with open("StreamBook.md", "w") as stream_file:
+                        stream_file.writelines(new_lines)
 
-        if current_time - last_cleanup_time >= timedelta(minutes=1):
-            sent_messages.clear()  # Очищаем множество отправленных сообщений
-            last_cleanup_time = current_time  # Обновляем время последней очистки
+                    if current_time - last_cleanup_time >= timedelta(minutes=0.05):
+                        sent_messages.clear()  # Очищаем множество отправленных сообщений
+                        last_cleanup_time = current_time
 
-        # Пауза на 1 минуту перед следующей итерацией
-        time.sleep(2.5)
+                    # Пауза на 1 минуту перед следующей итерацией
+                    time.sleep(2.5)
 
 if __name__ == "__main__":
     asyncio.run(main())
