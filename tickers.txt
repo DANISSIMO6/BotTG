@@ -3,7 +3,6 @@ import telebot
 from datetime import datetime, timedelta, timezone
 import time
 
-
 import asyncio
 from tinkoff.invest import (
     AsyncClient,
@@ -15,9 +14,12 @@ from tinkoff.invest import (
     SubscribeOrderBookRequest,
     OrderBookInstrument,
 )
+
 TOKEN = "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ"
 
 sent_messages = set()
+order_books = {}  # Add a dictionary to store order book data
+
 # Создайте объект timezone для UTC
 utc_timezone = timezone.utc
 stream_data = []
@@ -41,6 +43,7 @@ async def request_iterator(figi):
         )
     )
     await asyncio.sleep(1)
+
 async def process_marketdata(figi):
     async with AsyncClient(TOKEN) as client:
         async for marketdata in client.market_data_stream.market_data_stream(
@@ -49,6 +52,8 @@ async def process_marketdata(figi):
             print(marketdata)
             with open('StreamBook.md', 'a') as stream:
                 stream.write(str(marketdata) + '\n')
+                print(marketdata)
+                order_books[figi] = marketdata
 
 async def main():
     last_cleanup_time = datetime.now(timezone.utc)
@@ -82,8 +87,13 @@ async def main():
                     total_value = volume * close_value  # Умножение объема на цену закрытия
                     line_time = datetime(*map(int, time_match.group(1).split(", ")), tzinfo=utc_timezone)
                     current_time = datetime.now(timezone.utc)
-                    if figi in total_volumes and volume > (total_volumes[figi] * 3) and figi not in sent_messages:
+                    if figi in total_volumes and volume > (total_volumes[figi] * 2) and figi not in sent_messages:
                         await process_marketdata(figi)
+                        if figi in order_books:
+                            order_book_data = order_books[figi]
+                            # Process the order book data here
+                            print("Order Book Data for FIGI:", figi)
+                            print(order_book_data)
 
                         with open('StreamBook.md', 'r') as file:
                             data = file.read()
