@@ -1,152 +1,128 @@
-import re
-import telebot
-from datetime import datetime, timedelta, timezone
-import time
+ ETLN          BBG001M2SC01
+ SBER          BBG004730N88
+ SBERP         BBG0047315Y7
+ ROSN          BBG004731354
+ NVTK          BBG00475KKY8
+ LKOH          BBG004731032
+ GAZP          BBG004730RP0
+ SIBN          BBG004S684M6
+ GMKN          BBG004731489
+ SNGSP         BBG004S681M2
+ LSNGP         BBG000NLCCM3
+ PLZL          BBG000R607Y3
+ TATN          BBG004RVFFC0
+ TATNP         BBG004S68829
+ NLMK          BBG004S681B4
+ SNGS          BBG0047315D0
+ CHMF          BBG00475K6C3
+ TRNFP         BBG00475KHX6
+ UNAC          BBG000Q7ZZY2
+ YNDX          BBG006L8G4H1
+ PHOR          BBG004S689R0
+ IRKT          BBG000FWGSZ5
+ AKRN          BBG004S688G4
+ TCSG          BBG00QPYJ5H0
+ RUAL          BBG008F2T3T2
+ MAGN          BBG004S68507
+ MGNT          BBG004RVFCY3
+ OZON          BBG00Y91R9T3
+ ALRS          BBG004S68B31
+ VSMO          BBG004S68CV8
+ PIKK          BBG004S68BH6
+ MTSS          BBG004S681W1
+ MOEX          BBG004730JJ5
+ HYDR          BBG00475K2X9
+ BANE          BBG004S68758
+ IRAO          BBG004S68473
+ VTBR          BBG004730ZJ9
+ FESH          BBG000QF1Q17
+ FLOT          BBG000R04X57
+ ENPG          BBG000RMWQD4
+ BANEP         BBG004S686N0
+ RTKM          BBG004S682Z6
+ SMLT          BBG00F6NKQX3
+ NMTP          BBG004S68BR5
+ CBOM          BBG009GSYN76
+ NKNC          BBG000GQSRR5
+ RASP          BBG004S68696
+ POLY          BBG004PYF2N3
+ RTKMP         BBG004S685M3
+ KZOS          BBG0029SFXB3
+ TRMK          BBG004TC84Z8
+ LSNG          BBG000NLC9Z6
+ HHRU          TCS2207L1061
+ GCHE          BBG000RTHVK7
+ KMAZ          BBG000LNHHJ9
+ AFKS          BBG004S68614
+ MGTSP         BBG000PZ0833
+ AFLT          BBG004S683W7
+ AGRO          BBG007N0Z367
+ FIVE          BBG00JXPFBN0
+ NKNCP         BBG000GQSVC2
+ FEES          BBG00475JZZ6
+ UPRO          BBG004S686W0
+ KAZTP         BBG002B9T6Y1
+ APTK          BBG000K3STR7
+ MTLRP         BBG004S68FR6
+ BSPB          BBG000QJW156
+ KAZT          BBG002B9MYC1
+ MSNG          BBG004S687W8
+ GLTR          BBG000VFX6Y4
+ YAKG          BBG002B298N6
+ NKHP          BBG00BGKYH17
+ MTLR          BBG004S68598
+ SGZH          BBG0100R9963
+ AQUA          BBG000W325F7
+ SELG          BBG002458LF8
+ DVEC          BBG000V07CB8
+ MSTT          BBG004S68DD6
+ MRKS          BBG000VJMH65
+ BELU          BBG000TY1CD1
+ LSRG          BBG004S68C39
+ MSRS          BBG004S687G6
+ OGKB          BBG000RK52V1
+ MDMG          BBG00Y3XYV94
+ KZOSP         BBG0029SG1C1
+ RKKE          BBG000LWNRP3
+ AMEZ          BBG000RJWGC4
+ ROLO          BBG004Z2RGW8
+ RNFT          BBG00F9XX7H4
+ DSKY          BBG000BN56Q9
+ VRSB          BBG000BX7DH0
+ TGKA          BBG000QFH687
+ QIWI          BBG005D1WCQ1
+ MRKP          BBG000VG1034
+ MRKU          BBG000VKG4R5
+ GTRK          BBG00HY6V6H5
+ BLNG          BBG000VQWH86
+ MVID          BBG004S68CP5
+ CHMK          BBG000RP8V70
+ SVAV          BBG004S68JR8
+ ABRD          BBG002W2FT69
+ KROT          BBG000NLB2G3
+ LNZL          BBG000SK7JS5
+ SFIN          BBG003LYCMB1
+ TTLK          BBG000RJL816
+ TGKN          BBG000RG4ZQ4
+ MRKC          BBG000VH7TZ8
+ TGKBP         BBG000Q7GJ60
+ MRKY          BBG000C7P5M7
+ UWGN          BBG008HD3V85
+ MRKV          BBG000PKWCQ7
+ PMSBP         BBG000MZL2S9
+ TGKB          BBG000Q7GG57
+ OKEY          BBG00172J7S9
+ MRKZ          BBG000TJ6F42
+ PMSB          BBG000MZL0Y6
+ PRFN          TCS00A0JNXF9
+ UNKL          BBG002YFXL29
+ KRKNP         BBG002B2J5X0
+ LNZLP         BBG000SR0YS4
+ CNTL          BBG000BBV4M5
+ NSVZ          BBG002BCQK67
+ KLSB          BBG000DBD6F6
+ CNTLP         BBG0027F0Y27
+ LIFE          BBG0019K04R5
+ DIOD          BBG000G25P51
+ RUGR          BBG0014PFYM2
 
-import asyncio
-from tinkoff.invest import (
-    AsyncClient,
-    CandleInstrument,
-    MarketDataRequest,
-    SubscribeCandlesRequest,
-    SubscriptionAction,
-    SubscriptionInterval,
-    SubscribeOrderBookRequest,
-    OrderBookInstrument,
-)
-
-TOKEN = "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ"
-
-sent_messages = set()
-order_books = {}  # Add a dictionary to store order book data
-
-# Создайте объект timezone для UTC
-utc_timezone = timezone.utc
-stream_data = []
-# Ваш токен бота и ID чата
-bot_token = "6384593851:AAHHgUGXdQ8bar8HMKRuNgi1NnV_rhqnx0M"
-chat_id = "@novostikompaniy"
-
-# Создание экземпляра бота
-bot = telebot.TeleBot(bot_token)
-
-async def request_iterator(figi):
-    yield MarketDataRequest(
-        subscribe_order_book_request=SubscribeOrderBookRequest(
-            subscription_action=SubscriptionAction.SUBSCRIPTION_ACTION_SUBSCRIBE,
-            instruments=[
-                OrderBookInstrument(
-                    figi=figi,
-                    depth=50,
-                )
-            ],
-        )
-    )
-    await asyncio.sleep(1)
-
-async def process_marketdata(figi):
-    async with AsyncClient(TOKEN) as client:
-        async for marketdata in client.market_data_stream.market_data_stream(
-                request_iterator(figi)
-        ):
-            print(marketdata)
-            with open('StreamBook.md', 'a') as stream:
-                stream.write(str(marketdata) + '\n')
-                print(marketdata)
-                order_books[figi] = marketdata
-
-async def main():
-    last_cleanup_time = datetime.now(timezone.utc)
-    # Создание словаря для хранения Total Volume по FIGI
-    total_volumes = {}
-    while True:
-        # Считывание данных из файла FIGI.md и заполнение словаря
-        with open("FIGI.md", "r") as figi_file:
-            figi_data = figi_file.read()
-            figi_matches = re.finditer(r"FIGI: (\S+)[\s\S]*?Total Volume for 2nd to 5th weeks after division: ([\d.]+)", figi_data)
-            for match in figi_matches:
-                figi = match.group(1)
-                total_volume = float(match.group(2))
-                total_volumes[figi] = total_volume
-
-        # Считывание данных из файла Stream.md
-        with open("Stream.md", "r") as stream_file:
-            lines = stream_file.readlines()
-            new_lines = []
-            for line in lines:
-                figi_match = re.search(r"figi='(\S+)'", line)
-                volume_match = re.search(r"volume=(\d+)", line)
-                time_match = re.search(r"time=datetime.datetime\(([\d, ]+), tzinfo=datetime.timezone.utc\)", line)
-                close_match = re.search(r"close=Quotation\(units=(\d+), nano=(\d+)\)", line)
-                if figi_match and volume_match and time_match and close_match:
-                    figi = figi_match.group(1)
-                    volume = int(volume_match.group(1))
-                    close_units = int(close_match.group(1))
-                    close_nano = int(close_match.group(2))
-                    close_value = close_units + close_nano * 1e-9  # Преобразование в одно число
-                    total_value = volume * close_value  # Умножение объема на цену закрытия
-                    line_time = datetime(*map(int, time_match.group(1).split(", ")), tzinfo=utc_timezone)
-                    current_time = datetime.now(timezone.utc)
-                    if figi in total_volumes and volume > (total_volumes[figi] * 2) and figi not in sent_messages:
-                        await process_marketdata(figi)
-                        if figi in order_books:
-                            order_book_data = order_books[figi]
-                            # Process the order book data here
-                            print("Order Book Data for FIGI:", figi)
-                            print(order_book_data)
-
-                        with open('StreamBook.md', 'r') as file:
-                            data = file.read()
-
-                        # Извлечение списков bids из данных
-                        bids_data_list = re.findall(r'bids=\[(.*?)\]', data)
-
-                        total_bids_quantity = 0
-                        for bids_data in bids_data_list:
-                            # Извлечение значений quantity из списка bids
-                            bids_quantities = re.findall(r'quantity=(\d+)', bids_data)
-
-                            # Преобразование значений quantity в целые числа и вычисление их суммы
-                            total_bids_quantity += sum(int(quantity) for quantity in bids_quantities)
-
-                        # Извлечение списков asks из данных
-                        asks_data_list = re.findall(r'asks=\[(.*?)\]', data)
-
-                        total_asks_quantity = 0
-                        for asks_data in asks_data_list:
-                            # Извлечение значений quantity из списка asks
-                            asks_quantities = re.findall(r'quantity=(\d+)', asks_data)
-
-                            # Преобразование значений quantity в целые числа и вычисление их суммы
-                            total_asks_quantity += sum(int(quantity) for quantity in asks_quantities)
-
-                        # Вычисление общего количества
-                        total_quantity = total_bids_quantity + total_asks_quantity
-
-                        # Вычисление процентов
-                        bids_percentage = (total_bids_quantity / total_quantity) * 100 if total_quantity != 0 else 0
-                        asks_percentage = (total_asks_quantity / total_quantity) * 100 if total_quantity != 0 else 0
-
-                        # Отправка сообщения в Telegram, если объем в 2 раза больше Total Volume
-                        message = f"Объем для FIGI {figi} в Stream.md больше чем в 2 раза Total Volume: {volume}. " \
-                                  f"Общая стоимость составила: {total_value}"\
-                                  f"Покупки: {bids_percentage:.2f}% Продажи: {asks_percentage:.2f}%"\
-                                  f"Продажи: {total_asks_quantity}"\
-                                  f"Покупки: {total_bids_quantity}"
-
-                        bot.send_message(chat_id, message)
-                        sent_messages.add(figi)
-                    if current_time - line_time < timedelta(minutes=6):
-                        new_lines.append(line)
-            with open("Stream.md", "w") as stream_file:
-                stream_file.writelines(new_lines)
-
-        if current_time - last_cleanup_time >= timedelta(minutes=1):
-            sent_messages.clear()  # Очищаем множество отправленных сообщений
-            last_cleanup_time = current_time  # Обновляем время последней очистки
-
-        # Пауза на 1 минуту перед следующей итерацией
-        time.sleep(2.5)
-
-if __name__ == "__main__":
-    asyncio.run(main())
