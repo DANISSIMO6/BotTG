@@ -1,8 +1,10 @@
 import re
 import telebot
 from datetime import datetime, timedelta, timezone
+from telebot import types
 import time
-import os
+import pytz
+
 import asyncio
 from tinkoff.invest import (
     AsyncClient,
@@ -14,7 +16,8 @@ from tinkoff.invest import (
     SubscribeOrderBookRequest,
     OrderBookInstrument,
 )
-
+moscow_tz = pytz.timezone('Europe/Moscow')
+current_time3 = datetime.now(tz=moscow_tz)
 TOKEN = "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ"
 
 sent_messages = set()
@@ -42,7 +45,7 @@ async def request_iterator(figi):
             ],
         )
     )
-    await asyncio.sleep(1)
+    await asyncio.sleep(5)
 
 async def process_marketdata(figi):
     async with AsyncClient(TOKEN) as client:
@@ -54,11 +57,37 @@ async def process_marketdata(figi):
                 stream.write(str(marketdata) + '\n')
                 print(marketdata)
                 order_books[figi] = marketdata
+# Функция для извлечения close=Quotation из строки
+def extract_close_from_line(line):
+    match = re.search(r"close=Quotation\(units=(\d+), nano=(\d+)\)", line)
+    if match:
+        units = int(match.group(1))
+        nano = int(match.group(2))
+        close_value1 = units + nano * 1e-9  # Преобразование в одно число
+        return close_value1
+    return None
 
+# Функция для получения close=Quotation для указанного figi из файла Close.md
+def get_close_value_for_figi(figi):
+    with open("Close.md", "r") as close_file:
+        lines = close_file.readlines()
+        figi_found = False
+
+        for line in lines:
+            figi_match = re.search(r"FIGI: (\S+)", line)
+            if figi_match and figi_match.group(1) == figi:
+                figi_found = True
+            elif figi_found:
+                close_value1 = extract_close_from_line(line)
+                if close_value1 is not None:
+                    return close_value1
+
+    return None
 async def main():
     last_cleanup_time = datetime.now(timezone.utc)
     # Создание словаря для хранения Total Volume по FIGI
     total_volumes = {}
+
     while True:
         # Считывание данных из файла FIGI.md и заполнение словаря
         with open("FIGI.md", "r") as figi_file:
@@ -87,8 +116,32 @@ async def main():
                     total_value = volume * close_value  # Умножение объема на цену закрытия
                     line_time = datetime(*map(int, time_match.group(1).split(", ")), tzinfo=utc_timezone)
                     current_time = datetime.now(timezone.utc)
-                    if figi in total_volumes and volume > (total_volumes[figi] * 2) and figi not in sent_messages:
+                    if figi in total_volumes and volume > (total_volumes[figi] * 4) and figi not in sent_messages:
                         await process_marketdata(figi)
+                        current_figi = figi
+                        close_value1 = get_close_value_for_figi(current_figi)
+                        DayProcent = ((close_value - close_value1) / close_value1) * 100
+
+                        # Открываем файл и считываем его содержимое
+                        with open('tickers.txt', 'r') as file:
+                            tickers_data = [line.strip().split() for line in file]
+                        # Получаем текущий FIGI (замените это на ваш способ получения FIGI)
+                        current_figi2 = figi # Замените на ваш текущий FIGI
+                        # Ищем соответствующий тикер в данных из файла
+                        for ticker, figi in tickers_data:
+                            if figi == current_figi:
+                                print(f'Тикер акции для FIGI {current_figi2}: {ticker}')
+                                break
+                        else:
+                            print(f'Тикер для FIGI {current_figi2} не найден в файле.')
+                        # Закрываем файл
+                        file.close()
+
+                        # Create a clickable link with the Tinkoff URL using HTML formatting
+                        tinkoff_url = f"https://www.tinkoff.ru/invest/stocks/{ticker}"
+                        link_text = f"<a href='{tinkoff_url}'>{ticker}</a>"
+
+
                         if figi in order_books:
                             order_book_data = order_books[figi]
                             # Process the order book data here
@@ -126,36 +179,33 @@ async def main():
                         # Вычисление процентов
                         bids_percentage = (total_bids_quantity / total_quantity) * 100 if total_quantity != 0 else 0
                         asks_percentage = (total_asks_quantity / total_quantity) * 100 if total_quantity != 0 else 0
-                        # Получить текущее время
-                        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        last_cleanup_time = datetime.now(timezone.utc)
-                        line_time = datetime.now(timezone.utc)
+                        current_time_formatted = current_time3.strftime('%Y-%m-%d %H:%M:%S')
                         # Отправка сообщения в Telegram, если объем в 2 раза больше Total Volume
-                        message = f'Аномальный объём\n' \
-                                  f'Аномальное изменение цены\n' \
-                                  f'Изменение цены:\n' \
-                                  f'Объём: {total_value}М₽\n' \
-                                  f"Покупка: {bids_percentage:.2f}%\n" \
-                                  f"Продажа: {asks_percentage:.2f}%\n" \
-                                  f'Цена:\n' \
-                                  f'Изменение за день:'\
-                                  f"Время отправки: {current_time}\n"
+                        message = f"<b>Аномальный объём</b>\n" \
+                                  f"<b>{figi} {link_text} </b>\n\n" \
+                                  f"<b>Общая стоимость составила:</b> {total_value} руб. ({volume} лотов)\n"\
+                                  f"<b>Покупки: </b>{bids_percentage:.2f}% <b>Продажи:</b>{asks_percentage:.2f}%\n"\
+                                  f"<b>Время отправки:</b> {current_time_formatted}\n" \
+                                  f"<b>Процент за день:</b> {DayProcent:.2f}%\n" \
 
-                        bot.send_message(chat_id, message)
-                        sent_messages.add(figi)
-                    # Clear the content of StreamBook.md
-                    with open('StreamBook.md', 'w') as file:
-                        file.write('')
-
-                    sent_messages.add(figi)
-
-            if current_time - line_time < timedelta(minutes=6):
-                new_lines.append(line)
+                        try:
+                            bot.send_message(chat_id, message, parse_mode="HTML",disable_web_page_preview=True)
+                            sent_messages.add(figi)
+                            # Очистите файл StreamBook.md после успешной отправки сообщения
+                            #with open("StreamBook.md", "w") as streambook_file:
+                                #streambook_file.truncate(0)
+                        except Exception as e:
+                            print(f"Ошибка при отправке сообщения в Telegram: {e}")
+                    if current_time - line_time < timedelta(minutes=1):
+                        new_lines.append(line)
             with open("Stream.md", "w") as stream_file:
                 stream_file.writelines(new_lines)
 
-            time.sleep(2.5)
+        if current_time - last_cleanup_time >= timedelta(minutes=1):
+            sent_messages.clear()  # Очищаем множество отправленных сообщений
+            last_cleanup_time = current_time  # Обновляем время последней очистки
 
+        time.sleep(2.5)
 
 if __name__ == "__main__":
     asyncio.run(main())
