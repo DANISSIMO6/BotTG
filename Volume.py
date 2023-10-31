@@ -1,31 +1,20 @@
 import re
 import telebot
 from datetime import datetime, timedelta, timezone
-from telebot import types
 import time
 import pytz
-
+import html
 import asyncio
 from tinkoff.invest import (
     AsyncClient,
-    CandleInstrument,
     MarketDataRequest,
-    SubscribeCandlesRequest,
     SubscriptionAction,
-    SubscriptionInterval,
     SubscribeOrderBookRequest,
     OrderBookInstrument,
 )
-moscow_tz = pytz.timezone('Europe/Moscow')
-current_time3 = datetime.now(tz=moscow_tz)
+
 TOKEN = "t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ"
-
-sent_messages = set()
 order_books = {}  # Add a dictionary to store order book data
-
-# Создайте объект timezone для UTC
-utc_timezone = timezone.utc
-stream_data = []
 # Ваш токен бота и ID чата
 bot_token = "6384593851:AAHHgUGXdQ8bar8HMKRuNgi1NnV_rhqnx0M"
 chat_id = "@novostikompaniy"
@@ -83,11 +72,22 @@ def get_close_value_for_figi(figi):
                     return close_value1
 
     return None
+
+def extract_open_from_line(line):
+    match = re.search(r"open=Quotation\(units=(\d+), nano=(\d+)\)", line)
+    if match:
+        units = int(match.group(1))
+        nano = int(match.group(2))
+        open_value = units + nano * 1e-9  # Convert to a single number
+        return open_value
+    return None
 async def main():
+    sent_messages = set()
     last_cleanup_time = datetime.now(timezone.utc)
     # Создание словаря для хранения Total Volume по FIGI
     total_volumes = {}
-
+    # Создайте объект timezone для UTC
+    utc_timezone = timezone.utc
     while True:
         # Считывание данных из файла FIGI.md и заполнение словаря
         with open("FIGI.md", "r") as figi_file:
@@ -116,7 +116,7 @@ async def main():
                     total_value = volume * close_value  # Умножение объема на цену закрытия
                     line_time = datetime(*map(int, time_match.group(1).split(", ")), tzinfo=utc_timezone)
                     current_time = datetime.now(timezone.utc)
-                    if figi in total_volumes and volume > (total_volumes[figi] * 4) and figi not in sent_messages:
+                    if figi in total_volumes and volume > (total_volumes[figi] * 45) and figi not in sent_messages:
                         await process_marketdata(figi)
                         current_figi = figi
                         close_value1 = get_close_value_for_figi(current_figi)
@@ -179,21 +179,30 @@ async def main():
                         # Вычисление процентов
                         bids_percentage = (total_bids_quantity / total_quantity) * 100 if total_quantity != 0 else 0
                         asks_percentage = (total_asks_quantity / total_quantity) * 100 if total_quantity != 0 else 0
+
+                        moscow_tz = pytz.timezone('Europe/Moscow')
+                        current_time3 = datetime.now(tz=moscow_tz)
                         current_time_formatted = current_time3.strftime('%Y-%m-%d %H:%M:%S')
+
+                        # Extract the open value from the stream data
+                        open_value = extract_open_from_line(line)
+                        open_close_percentage = ((close_value - open_value) / open_value) * 100
                         # Отправка сообщения в Telegram, если объем в 2 раза больше Total Volume
                         message = f"<b>Аномальный объём</b>\n" \
                                   f"<b>{figi} {link_text} </b>\n\n" \
-                                  f"<b>Общая стоимость составила:</b> {total_value} руб. ({volume} лотов)\n"\
-                                  f"<b>Покупки: </b>{bids_percentage:.2f}% <b>Продажи:</b>{asks_percentage:.2f}%\n"\
-                                  f"<b>Время отправки:</b> {current_time_formatted}\n" \
+                                  f"<b>Общая стоимость составила:</b> {total_value:.2f} руб. ({volume} лотов)\n" \
+                                  f"<b>Изменение цены: </b> {open_close_percentage:.2f}% \n"\
+                                  f"<b>Цена сейчас: </b> {close_value}\n" \
+                                  f"<b>Покупки: </b>{bids_percentage:.2f}% <b>Продажи:</b>{asks_percentage:.2f}%\n" \
                                   f"<b>Процент за день:</b> {DayProcent:.2f}%\n" \
+                                  f"<b>Время отправки:</b> {current_time_formatted}\n" \
 
                         try:
                             bot.send_message(chat_id, message, parse_mode="HTML",disable_web_page_preview=True)
                             sent_messages.add(figi)
                             # Очистите файл StreamBook.md после успешной отправки сообщения
-                            #with open("StreamBook.md", "w") as streambook_file:
-                                #streambook_file.truncate(0)
+                            with open("StreamBook.md", "w") as streambook_file:
+                                streambook_file.truncate(0)
                         except Exception as e:
                             print(f"Ошибка при отправке сообщения в Telegram: {e}")
                     if current_time - line_time < timedelta(minutes=1):
