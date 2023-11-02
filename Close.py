@@ -7,7 +7,6 @@ from tinkoff.invest.utils import now
 
 TOKEN = 't.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ'
 
-# Define a list of figi values
 figi_list = [
     "BBG001M2SC01", "BBG004730N88", "BBG0047315Y7", "BBG004731354", "BBG00475KKY8", "BBG004731032", "BBG004730RP0",
     "BBG004S684M6", "BBG004731489", "BBG004S681M2", "BBG000NLCCM3", "BBG000R607Y3", "BBG004RVFFC0", "BBG004S68829",
@@ -32,7 +31,6 @@ figi_list = [
 
 def fetch_data():
     with Client(TOKEN) as client:
-        # Create a single file for all figi values
         with open('Close.md', 'w') as file:
             for figi in figi_list:
                 file.write(f"FIGI: {figi}\n")
@@ -41,11 +39,9 @@ def fetch_data():
                     from_=now() - timedelta(days=1),
                     interval=CandleInterval.CANDLE_INTERVAL_DAY,
                 ):
-                    # Write the candle data to the single file
                     file.write(str(candle) + '\n')
 
 def job():
-    # Clear the file before writing new data
     with open('Close.md', 'w') as file:
         pass
     fetch_data()
@@ -54,13 +50,15 @@ def job():
 scheduler = BackgroundScheduler()
 scheduler.start()
 
-# Add a job to run at 12:32 PM on weekdays
-scheduler.add_job(job, 'cron', day_of_week='mon-fri', hour=15, minute=45)
+# Add a job to run at 23:47 on weekdays
+scheduler.add_job(job, 'cron', day_of_week='mon-fri', hour=14, minute=25)
+
+# You can add logging here to track task execution and errors
 
 # Keep the script running
 try:
-    while True:
-        pass
-except (KeyboardInterrupt, SystemExit):
+    input("Press Enter to exit...")
+except KeyboardInterrupt:
     # Shut down the scheduler gracefully when exiting
     scheduler.shutdown()
+
