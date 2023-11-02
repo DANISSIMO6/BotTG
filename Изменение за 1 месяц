@@ -1,11 +1,12 @@
 import asyncio
 import os
 from datetime import timedelta
-
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger  # Import CronTrigger
 from tinkoff.invest import AsyncClient, CandleInterval
 from tinkoff.invest.utils import now
 
-TOKEN ='t.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ'
+TOKEN = 't.OpTGgjrL00hW6AruBxEr9vhtxNd2gWxmVJ8uE2qEex-i699xS8C4PhGpyASIQbiL6U3Z109SsnEOHO7xQ5HgYQ'
 
 FIGIs = [
     "BBG001M2SC01", "BBG004730N88", "BBG0047315Y7", "BBG004731354", "BBG00475KKY8", "BBG004731032", "BBG004730RP0",
@@ -49,8 +50,23 @@ async def main():
                 total_volume /= 60
                 f.write(f"Total Volume for 2nd to 5th weeks after division: {total_volume}\n")
 
-if __name__ == "__main__":
+# Define a job function
+def job():
     asyncio.run(main())
 
+# Create a BackgroundScheduler instance
+scheduler = BackgroundScheduler()
 
+# Add a job to run at 14:25 on weekdays (Monday to Friday)
+scheduler.add_job(job, CronTrigger(day_of_week='mon-fri', hour=14, minute=45))
+
+if __name__ == "__main__":
+    # Start the scheduler
+    scheduler.start()
+    try:
+        # This will keep the script running and allow the scheduler to execute the job
+        asyncio.get_event_loop().run_forever()
+    except (KeyboardInterrupt, SystemExit):
+        # Shutdown the scheduler gracefully if needed
+        scheduler.shutdown()
 
