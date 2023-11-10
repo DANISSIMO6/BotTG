@@ -7,6 +7,11 @@ token = "6384593851:AAHHgUGXdQ8bar8HMKRuNgi1NnV_rhqnx0M"  # Your token
 channel_id = "@novostikompaniy"  # Your channel username
 bot = telebot.TeleBot(token)
 
+def send_long_message(chat_id, text):
+    max_length = 4096  # Maximum length allowed by Telegram API
+    for i in range(0, len(text), max_length):
+        bot.send_message(chat_id, text[i:i + max_length])
+
 @bot.message_handler(content_types=['text'])
 def commands(message):
     if message.text == "Старт":
@@ -15,8 +20,8 @@ def commands(message):
             silkainfa_text = parser(back_silkainfa_href)
             back_silkainfa_href = silkainfa_text[1]
 
-            if silkainfa_text[0] != None:
-                bot.send_message(channel_id, silkainfa_text[0])
+            if silkainfa_text[0] is not None:
+                send_long_message(channel_id, silkainfa_text[0])
                 time.sleep(10)
     else:
         bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши Старт")
@@ -43,7 +48,8 @@ def parser(back_silkainfa_href):
         event_soup = BeautifulSoup(event_page.text, 'html.parser')
         event_data = event_soup.find('div', style="word-break: break-word; word-wrap: break-word; white-space: pre-wrap;").text.strip()
 
-        return f"{title}\n\n{silka}\n\n{titleinfa}\n\n{silkainfa}\n\n{event_data}", silkainfa_href
+        message = f"{title}\n\n{silka}\n\n{titleinfa}\n\n{silkainfa}\n\n{event_data}"
+        return message, silkainfa_href
     else:
         return None, silkainfa_href
 
